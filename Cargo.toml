@@ -1,0 +1,15 @@
+[package]
+name = "opensrdk-active-inference"
+version = "0.1.0"
+authors = ["Kimura Yu <33382781+KimuraYu45z@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thiserror = "1.0.24"
+rayon = "1.5.0"
+opensrdk-linear-algebra = "0.6.4"
+opensrdk-probability = "0.1.9"
+blas-src = { version = "0.7", features = ["intel-mkl"] }
+lapack-src = { version = "0.6", features = ["intel-mkl"] }
