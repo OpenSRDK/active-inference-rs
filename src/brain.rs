@@ -5,7 +5,6 @@ use opensrdk_probability::*;
 use rayon::prelude::*;
 use std::error::Error;
 use std::fmt::Debug;
-use std::mem::transmute;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BrainError {
@@ -15,26 +14,26 @@ pub enum BrainError {
   Unknown,
 }
 
-pub struct Brain<X, D, const U: usize, const S: usize, const A: usize>
+pub struct Brain<X, D, const C: usize, const S: usize, const A: usize>
 where
   X: State,
-  D: Distribution<T = X, U = [f64; U]>,
+  D: Distribution<T = X, U = [f64; C]>,
 {
   nerves: [Nerve<X>; S],
   x_distr: D,
-  x_params: [f64; U],
-  x_approx_params: [f64; U],
+  x_params: [f64; C],
+  x_approx_params: [f64; C],
 }
 
-impl<X, D, const U: usize, const S: usize, const A: usize> Brain<X, D, U, S, A>
+impl<X, D, const C: usize, const S: usize, const A: usize> Brain<X, D, C, S, A>
 where
   X: State,
-  D: Distribution<T = X, U = [f64; U]>,
+  D: Distribution<T = X, U = [f64; C]>,
 {
   pub fn new(
     nerves: [Nerve<X>; S],
     x_distr: D,
-    x_params: [f64; U],
+    x_params: [f64; C],
   ) -> Result<Self, Box<dyn Error>> {
     Ok(Self {
       nerves,
@@ -52,25 +51,24 @@ where
     &mut self.nerves
   }
 
-  pub fn x_params(&mut self) -> &[f64; U] {
+  pub fn x_params(&mut self) -> &[f64; C] {
     &self.x_params
   }
 
-  pub fn x_params_mut(&mut self) -> &mut [f64; U] {
+  pub fn x_params_mut(&mut self) -> &mut [f64; C] {
     &mut self.x_params
   }
 
   fn sample_s(&mut self, x: &X) -> [f64; S] {
-    let s = self
-      .nerves
-      .par_iter_mut()
-      .map(|nerve| nerve.sample_s(x))
-      .collect::<Vec<_>>();
+    let mut s = [0.0; S];
+    s.par_iter_mut()
+      .zip(self.nerves.par_iter_mut())
+      .for_each(|(s, nerve)| *s = nerve.sample_s(x));
 
-    transmute(s)
+    s
   }
 
-  fn bayes_est_x(&mut self) -> Result<&[f64; U], Box<dyn Error>> {
+  fn bayes_est_x(&mut self) -> Result<&[f64; C], Box<dyn Error>> {
     Ok(&self.x_approx_params)
   }
 
@@ -78,11 +76,12 @@ where
     Ok([true; A])
   }
 
-  fn free_energy(&self, s: &[f64; S]) -> Result<f64, Box<dyn Error>> {
-    Ok()
-  }
-
-  fn learn_delta_free_energy(&mut self) -> Result<(), Box<dyn Error>> {
+  fn learn_delta_s(
+    &mut self,
+    delta_s: [f64; S],
+    s: [f64; S],
+    a: [bool; A],
+  ) -> Result<(), Box<dyn Error>> {
     Ok(())
   }
 
@@ -95,13 +94,15 @@ where
 
     self.bayes_est_x()?;
 
-    let free_energy = self.free_energy(&s)?;
-
     let a = self.bayes_opt_a()?;
     let x = env.transition(a);
-    let s = self.sample_s(x);
+    let mut delta_s = self.sample_s(x);
+    delta_s
+      .par_iter_mut()
+      .zip(s.par_iter())
+      .for_each(|(delta_si, si)| *delta_si -= si);
 
-    let delta_free_energy = self.free_energy(&s)? - free_energy;
+    self.learn_delta_s(delta_s, s, a)?;
 
     Ok(())
   }
