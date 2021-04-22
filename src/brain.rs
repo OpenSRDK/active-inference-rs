@@ -14,26 +14,26 @@ pub enum BrainError {
   Unknown,
 }
 
-pub struct Brain<X, D, const C: usize, const S: usize, const A: usize>
+pub struct Brain<X, D, const S: usize, const A: usize>
 where
   X: State,
-  D: Distribution<T = X, U = [f64; C]>,
+  D: VariationalInferenceDistribution<X>,
 {
   nerves: [Nerve<X>; S],
   x_distr: D,
-  x_params: [f64; C],
-  x_approx_params: [f64; C],
+  x_params: Vec<f64>,
+  x_approx_params: Vec<f64>,
 }
 
-impl<X, D, const C: usize, const S: usize, const A: usize> Brain<X, D, C, S, A>
+impl<X, D, const S: usize, const A: usize> Brain<X, D, S, A>
 where
   X: State,
-  D: Distribution<T = X, U = [f64; C]>,
+  D: Distribution<T = X, U = Vec<f64>>,
 {
   pub fn new(
     nerves: [Nerve<X>; S],
     x_distr: D,
-    x_params: [f64; C],
+    x_params: Vec<f64>,
   ) -> Result<Self, Box<dyn Error>> {
     Ok(Self {
       nerves,
@@ -51,11 +51,11 @@ where
     &mut self.nerves
   }
 
-  pub fn x_params(&mut self) -> &[f64; C] {
+  pub fn x_params(&mut self) -> &Vec<f64> {
     &self.x_params
   }
 
-  pub fn x_params_mut(&mut self) -> &mut [f64; C] {
+  pub fn x_params_mut(&mut self) -> &mut Vec<f64> {
     &mut self.x_params
   }
 
@@ -68,7 +68,17 @@ where
     s
   }
 
-  fn bayes_est_x(&mut self) -> Result<&[f64; C], Box<dyn Error>> {
+  fn bayes_est_x(&mut self, s: &[f64; S]) -> Result<&Vec<f64>, Box<dyn Error>> {
+    self.x_distr.variational_inference(
+      self.x_approx_params.len(),
+      |x, theta| {},
+      s,
+      z,
+      z,
+      1,
+      1,
+      1,
+    )?;
     Ok(&self.x_approx_params)
   }
 
@@ -92,7 +102,7 @@ where
     let x = env.state();
     let s = self.sample_s(x);
 
-    self.bayes_est_x()?;
+    self.bayes_est_x(&s)?;
 
     let a = self.bayes_opt_a()?;
     let x = env.transition(a);

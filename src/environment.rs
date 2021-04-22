@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use opensrdk_probability::RandomVariable;
 
 pub trait Environment<X, const A: usize>
 where
@@ -8,9 +8,9 @@ where
   fn transition(&mut self, a: [bool; A]) -> &X;
 }
 
-pub trait State: Clone + Debug + Send + Sync {}
+pub trait State: RandomVariable {}
 
-impl<T> State for T where T: Clone + Debug + Send + Sync {}
+impl<T> State for T where T: RandomVariable {}
 
 #[cfg(test)]
 mod tests {
