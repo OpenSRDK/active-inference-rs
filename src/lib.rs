@@ -9,9 +9,9 @@ extern crate rayon;
 use opensrdk_probability::DistributionError;
 use std::error::Error;
 
-pub mod pomdp;
+pub mod posg;
 
-pub use pomdp::*;
+pub use posg::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum ActiveInferenceError {
