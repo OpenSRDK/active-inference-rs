@@ -77,7 +77,20 @@ fn test_main() {
                 Hand::Scissors => 0.0,
             },
         },
-        InstantDistribution::new(|x, theta| todo!(), |theta, rng| todo!()),
+        InstantDistribution::new(
+            |_x, _theta| Ok(1.0 / 3.0),
+            |_theta, rng| {
+                let n = rng.gen_range(0.0..=3.0);
+                if n <= 1.0 {
+                    Ok(Hand::Rock)
+                } else if 1.0 < n && n <= 2.0 {
+                    Ok(Hand::Paper)
+                } else {
+                    Ok(Hand::Scissors)
+                }
+            },
+        ),
+        //Uniform
         vec![0.1, 0.2, 0.7],
         NonParametricPolicyOthers::new(vec![], RBF, vec![1.0, 1.0]),
     );
