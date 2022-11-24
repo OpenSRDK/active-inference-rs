@@ -1,4 +1,6 @@
-use opensrdk_probability::{Distribution, DistributionError, RandomVariable};
+use opensrdk_probability::{
+    Distribution, DistributionError, RandomVariable, SampleableDistribution,
+};
 
 use crate::Observation;
 
@@ -38,10 +40,19 @@ where
     type Value = Oi;
     type Condition = ((Ai, AOthers), S);
 
-    fn fk(&self, x: &Self::Value, theta: &Self::Condition) -> Result<f64, DistributionError> {
-        self.distr.fk(x, theta)
+    fn p_kernel(&self, x: &Self::Value, theta: &Self::Condition) -> Result<f64, DistributionError> {
+        self.distr.p_kernel(x, theta)
     }
+}
 
+impl<S, Ai, AOthers, Oi, D> SampleableDistribution for KnownObservation<S, Ai, AOthers, Oi, D>
+where
+    S: RandomVariable,
+    Ai: RandomVariable,
+    AOthers: RandomVariable,
+    Oi: RandomVariable,
+    D: SampleableDistribution<Value = Oi, Condition = ((Ai, AOthers), S)>,
+{
     fn sample(
         &self,
         theta: &Self::Condition,
@@ -67,6 +78,6 @@ where
         _a_others: &AOthers,
         _s_next: &S,
     ) -> Result<(), DistributionError> {
-        Ok(())
+        Ok(()) //sとoを入手することで学習するが、全て既知なので必要なし
     }
 }

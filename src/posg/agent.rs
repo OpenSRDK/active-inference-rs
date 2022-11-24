@@ -1,7 +1,7 @@
 use crate::{Observation, PolicyOthers};
 use opensrdk_probability::{
     rand::{rngs::StdRng, RngCore, SeedableRng},
-    Distribution, DistributionError, RandomVariable,
+    Distribution, DistributionError, RandomVariable, SampleableDistribution,
 };
 use std::marker::PhantomData;
 
@@ -35,7 +35,7 @@ where
     Oi: RandomVariable,
     Obs: Observation<S, Ai, AOthers, Oi>,
     Ri: Fn(&Ai, &S) -> f64,
-    Pii: Distribution<Value = Ai, Condition = (S, Thetai)>,
+    Pii: SampleableDistribution<Value = Ai, Condition = (S, Thetai)>,
     Thetai: RandomVariable,
     PiOthers: PolicyOthers<S, AOthers>,
 {
@@ -66,11 +66,13 @@ where
     pub fn observe(&mut self, a_i: &Ai, o_i_next: &Oi) -> Result<f64, DistributionError> {
         let previous_state = &self.inferred_state;
         let mut rng = StdRng::from_seed([1; 32]);
-        let (inferred_s_next, inferred_a_others): (S, AOthers) = //(
-        //     previous_state.clone(),
-        //     self.policy_others.sample(previous_state, &mut rng).unwrap(),
-        // );
-        todo!("{:#?}{:#?}{:#?}", self.observation, a_i, o_i_next);
+        let (inferred_s_next, inferred_a_others): (S, AOthers) =
+            todo!("{:#?}{:#?}{:#?}", self.observation, a_i, o_i_next); //(
+                                                                       //     previous_state.clone(),
+                                                                       //     self.policy_others.sample(pous_state, &mut rng).unwrap(),
+                                                                       // );
+                                                                       //self.observation, a_i, o_i_nextをつかって、inferred_s_next, inferred_a_othersを推定せよ
+                                                                       //observationとpolicy_othersのトレイトを使って推定する
 
         let reward = (self.reward)(a_i, &inferred_s_next);
 

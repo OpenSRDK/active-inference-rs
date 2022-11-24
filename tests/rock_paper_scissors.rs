@@ -52,6 +52,7 @@ fn test_main() {
         (Hand::Rock, Hand::Rock),
         KnownObservation::new(InstantDistribution::new(
             |x: &(Hand, Hand), theta: &((Hand, Hand), (Hand, Hand))| {
+                //
                 if *x == theta.1 && x.0 == theta.0 .0 && x.1 == theta.0 .1 {
                     Ok(1.0)
                 } else {
@@ -77,20 +78,7 @@ fn test_main() {
                 Hand::Scissors => 0.0,
             },
         },
-        InstantDistribution::new(
-            |_x, _theta| Ok(1.0 / 3.0),
-            |_theta, rng| {
-                let n = rng.gen_range(0.0..=3.0);
-                if n <= 1.0 {
-                    Ok(Hand::Rock)
-                } else if 1.0 < n && n <= 2.0 {
-                    Ok(Hand::Paper)
-                } else {
-                    Ok(Hand::Scissors)
-                }
-            },
-        ),
-        //Uniform
+        InstantDistribution::new(|x, theta| todo!(), |theta, rng| todo!()),
         vec![0.1, 0.2, 0.7],
         NonParametricPolicyOthers::new(vec![], RBF, vec![1.0, 1.0]),
     );
@@ -108,4 +96,8 @@ fn test_main() {
     }
 
     // TODO: confirm the convergence into Mixed Strategy Nash Equilibrium [0.33, 0.33, 0.33]
+    //自分のpolicyがこうの時に相手のpolicyがこうという関数をnonparaでいいので関数近似したい
+    //相手の最適反応関数を使って、ベルマン方程式的なものを考え、方策を学習していく
+    //ベルマン方程式は、事実上使えない（Q学習的なものになる）、world modelかpilcoのような手法で方策を学習していくことになる。
+    //相手の最適反応関数を考慮に入れて学習すれば、ナッシュ均衡にいたるのでは（仮説）
 }

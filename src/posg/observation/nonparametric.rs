@@ -1,6 +1,8 @@
 use crate::Observation;
 use opensrdk_kernel_method::PositiveDefiniteKernel;
-use opensrdk_probability::{Distribution, DistributionError, RandomVariable};
+use opensrdk_probability::{
+    Distribution, DistributionError, RandomVariable, SampleableDistribution,
+};
 
 #[derive(Clone, Debug)]
 pub struct NonParametricObservation<S, Ai, AOthers, Oi, K>
@@ -44,16 +46,26 @@ where
     type Value = Oi;
     type Condition = ((Ai, AOthers), S);
 
-    fn fk(&self, x: &Self::Value, theta: &Self::Condition) -> Result<f64, DistributionError> {
-        todo!()
+    fn p_kernel(&self, x: &Self::Value, theta: &Self::Condition) -> Result<f64, DistributionError> {
+        todo!() //編集必要
     }
+}
 
+impl<S, Ai, AOthers, Oi, K> SampleableDistribution
+    for NonParametricObservation<S, Ai, AOthers, Oi, K>
+where
+    S: RandomVariable,
+    Ai: RandomVariable,
+    AOthers: RandomVariable,
+    Oi: RandomVariable,
+    K: PositiveDefiniteKernel<Vec<f64>>,
+{
     fn sample(
         &self,
         theta: &Self::Condition,
         rng: &mut dyn opensrdk_probability::rand::RngCore,
     ) -> Result<Self::Value, DistributionError> {
-        todo!()
+        todo!() //編集必要
     }
 }
 
