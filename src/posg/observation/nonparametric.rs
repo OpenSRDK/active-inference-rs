@@ -82,9 +82,7 @@ where
         s_next: &S,
     ) -> Result<(), DistributionError> {
         self.model.history.push((
-            a_i.clone(),
-            a_others.clone(),
-            s_next.clone(),
+            ((a_i.clone(), a_others.clone()), s_next.clone()),
             o_i_next.clone(),
         ));
         Ok(())
