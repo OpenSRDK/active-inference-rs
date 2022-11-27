@@ -1,7 +1,6 @@
-use opensrdk_kernel_method::PositiveDefiniteKernel;
 use opensrdk_probability::{
-    nonparametric::GeneralizedKernelDensity, Distribution, DistributionError, RandomVariable,
-    SampleableDistribution,
+    nonparametric::GeneralizedKernelDensity, opensrdk_kernel_method::PositiveDefiniteKernel,
+    Distribution, DistributionError, RandomVariable, SampleableDistribution,
 };
 
 use crate::PolicyOthers;
@@ -23,7 +22,11 @@ where
     AOthers: RandomVariable,
     K: PositiveDefiniteKernel<Vec<f64>>,
 {
-    pub fn new(model: GeneralizedKernelDensity<S, AOthers, K>) -> Self {
+    pub fn from(model: GeneralizedKernelDensity<S, AOthers, K>) -> Self {
+        Self { model }
+    }
+    pub fn new(history: Vec<(S, AOthers)>, kernel: K, kernel_params: Vec<f64>) -> Self {
+        let model = GeneralizedKernelDensity::new(history, kernel, kernel_params);
         Self { model }
     }
 }
@@ -68,5 +71,3 @@ where
         Ok(())
     }
 }
-
-//generalized_kernel_density_estimnationみたいな感じでprobabilityに移植するか？

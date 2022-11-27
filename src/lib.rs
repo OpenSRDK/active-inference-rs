@@ -2,6 +2,7 @@
 extern crate blas_src;
 #[cfg(test)]
 extern crate lapack_src;
+extern crate opensrdk_kernel_method;
 extern crate opensrdk_linear_algebra;
 extern crate opensrdk_probability;
 extern crate rayon;

@@ -10,8 +10,8 @@ edition = "2018"
 thiserror = "1.0.24"
 rayon = "1.5.0"
 opensrdk-linear-algebra = "0.8.4"
-opensrdk-kernel-method = "0.1.8"
-opensrdk-probability =  "0.8.2"
+opensrdk-kernel-method = "0.2.0"
+opensrdk-probability =  "0.8.6"
 
 [dev-dependencies]
 blas-src = { version = "0.8", features = ["intel-mkl"] } 

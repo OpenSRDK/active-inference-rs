@@ -1,7 +1,8 @@
 use crate::Observation;
 use opensrdk_kernel_method::PositiveDefiniteKernel;
 use opensrdk_probability::{
-    Distribution, DistributionError, RandomVariable, SampleableDistribution,
+    nonparametric::GeneralizedKernelDensity, Distribution, DistributionError, RandomVariable,
+    SampleableDistribution,
 };
 
 #[derive(Clone, Debug)]
@@ -13,9 +14,7 @@ where
     Oi: RandomVariable,
     K: PositiveDefiniteKernel<Vec<f64>>,
 {
-    history: Vec<(Ai, AOthers, S, Oi)>,
-    kernel: K,
-    kernel_params: Vec<f64>,
+    model: GeneralizedKernelDensity<((Ai, AOthers), S), Oi, K>,
 }
 
 impl<S, Ai, AOthers, Oi, K> NonParametricObservation<S, Ai, AOthers, Oi, K>
@@ -26,12 +25,9 @@ where
     Oi: RandomVariable,
     K: PositiveDefiniteKernel<Vec<f64>>,
 {
-    pub fn new(history: Vec<(Ai, AOthers, S, Oi)>, kernel: K, kernel_params: Vec<f64>) -> Self {
-        Self {
-            history,
-            kernel,
-            kernel_params,
-        }
+    pub fn new(history: Vec<(((Ai, AOthers), S), Oi)>, kernel: K, kernel_params: Vec<f64>) -> Self {
+        let model = GeneralizedKernelDensity::new(history, kernel, kernel_params);
+        Self { model }
     }
 }
 
@@ -47,7 +43,7 @@ where
     type Condition = ((Ai, AOthers), S);
 
     fn p_kernel(&self, x: &Self::Value, theta: &Self::Condition) -> Result<f64, DistributionError> {
-        todo!() //編集必要
+        self.model.p_kernel(x, theta)
     }
 }
 
@@ -65,7 +61,7 @@ where
         theta: &Self::Condition,
         rng: &mut dyn opensrdk_probability::rand::RngCore,
     ) -> Result<Self::Value, DistributionError> {
-        todo!() //編集必要
+        self.model.sample(theta, rng)
     }
 }
 
@@ -85,7 +81,7 @@ where
         a_others: &AOthers,
         s_next: &S,
     ) -> Result<(), DistributionError> {
-        self.history.push((
+        self.model.history.push((
             a_i.clone(),
             a_others.clone(),
             s_next.clone(),

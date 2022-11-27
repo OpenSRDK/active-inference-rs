@@ -2,6 +2,7 @@ use crate::opensrdk_probability::rand::SeedableRng;
 use opensrdk_active_inference::{KnownObservation, NonParametricPolicyOthers, POSGAgent};
 use opensrdk_kernel_method::RBF;
 use opensrdk_probability::{
+    nonparametric::GeneralizedKernelDensity,
     rand::{prelude::StdRng, Rng},
     InstantDistribution, RandomVariable,
 };
