@@ -12,7 +12,7 @@ where
     AOthers: RandomVariable,
     K: PositiveDefiniteKernel<Vec<f64>>,
 {
-    model: GeneralizedKernelDensity<S, AOthers, K>, //基本的にはカーネル密度推定をしたいが、標本の空間が実数スカラー(wikiみたいなナイーブな例)ではなく任意の集合としたい
+    distr: GeneralizedKernelDensity<S, AOthers, K>, //基本的にはカーネル密度推定をしたいが、標本の空間が実数スカラー(wikiみたいなナイーブな例)ではなく任意の集合としたい
                                                     //sとa_othersの関係を学習したい
 }
 
@@ -22,12 +22,12 @@ where
     AOthers: RandomVariable,
     K: PositiveDefiniteKernel<Vec<f64>>,
 {
-    pub fn from(model: GeneralizedKernelDensity<S, AOthers, K>) -> Self {
-        Self { model }
+    pub fn from(distr: GeneralizedKernelDensity<S, AOthers, K>) -> Self {
+        Self { distr }
     }
     pub fn new(history: Vec<(S, AOthers)>, kernel: K, kernel_params: Vec<f64>) -> Self {
-        let model = GeneralizedKernelDensity::new(history, kernel, kernel_params);
-        Self { model }
+        let distr = GeneralizedKernelDensity::new(history, kernel, kernel_params);
+        Self { distr }
     }
 }
 
@@ -41,7 +41,7 @@ where
     type Condition = S;
 
     fn p_kernel(&self, x: &Self::Value, theta: &Self::Condition) -> Result<f64, DistributionError> {
-        self.model.p_kernel(x, theta)
+        self.distr.p_kernel(x, theta)
     }
 }
 
@@ -56,7 +56,7 @@ where
         theta: &Self::Condition,
         rng: &mut dyn opensrdk_probability::rand::RngCore,
     ) -> Result<Self::Value, DistributionError> {
-        self.model.sample(theta, rng)
+        self.distr.sample(theta, rng)
     }
 }
 
@@ -67,7 +67,7 @@ where
     K: PositiveDefiniteKernel<Vec<f64>>,
 {
     fn update(&mut self, s: &S, a_others: &AOthers) -> Result<(), DistributionError> {
-        self.model.history.push((s.clone(), a_others.clone()));
+        self.distr.history.push((s.clone(), a_others.clone()));
         Ok(())
     }
 }
