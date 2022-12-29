@@ -54,6 +54,9 @@ fn test_main() {
         learn2_by_1(&mut data, &next_b1_sigma2, &sigma1, &b1_sigma2);
         learn1_by_2(&mut data, &next_b2_sigma1, &sigma2, &b2_sigma1);
 
+        expected_utility1(&sigma1, &next_b1_sigma2);
+        expected_utility2(&sigma2, &next_b2_sigma1);
+
         sigma1 = optimize_policy1(&data, &sigma1, &b1_sigma2);
         sigma2 = optimize_policy2(&data, &sigma2, &b2_sigma1);
 
@@ -167,6 +170,36 @@ fn predict2_by_1(data: &Data, sigma1: &[f64; 2], b1_sigma2: &[f64; 2]) -> [f64; 
 
 fn predict1_by_2(data: &Data, sigma2: &[f64; 2], b2_sigma1: &[f64; 2]) -> [f64; 2] {
     todo!()
+}
+
+fn expected_utility1(sigma1: &[f64; 2], next_b1_sigma2: &[f64; 2]) -> f64 {
+    let sigma1_s = 1 as f64 - sigma1[0] - sigma1[1];
+    let next_b1_sigma2_s = 1 as f64 - next_b1_sigma2[0] - next_b1_sigma2[1];
+    let utility1 = 3 as f64
+        * (sigma1[0] * next_b1_sigma2_s
+            + sigma1[1] * next_b1_sigma2[0]
+            + sigma1_s * next_b1_sigma2[1])
+        + 1 as f64
+            * (sigma1[0] * next_b1_sigma2[0]
+                + sigma1[1] * next_b1_sigma2[1]
+                + sigma1_s * next_b1_sigma2_s);
+
+    utility1
+}
+
+fn expected_utility2(sigma2: &[f64; 2], next_b2_sigma1: &[f64; 2]) -> f64 {
+    let sigma2_s = 1 as f64 - sigma2[0] - sigma2[1];
+    let next_b2_sigma1_s = 1 as f64 - next_b2_sigma1[0] - next_b2_sigma1[1];
+    let utility2 = 3 as f64
+        * (sigma2[0] * next_b2_sigma1_s
+            + sigma2[1] * next_b2_sigma1[0]
+            + sigma2_s * next_b2_sigma1[1])
+        + 1 as f64
+            * (sigma2[0] * next_b2_sigma1[0]
+                + sigma2[1] * next_b2_sigma1[1]
+                + sigma2_s * next_b2_sigma1_s);
+
+    utility2
 }
 
 fn optimize_policy1(data: &Data, sigma1: &[f64; 2], b1_sigma2: &[f64; 2]) -> [f64; 2] {
