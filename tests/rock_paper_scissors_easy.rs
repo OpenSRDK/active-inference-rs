@@ -123,7 +123,7 @@ fn learn2_by_1(
         previous_b1_sigma2: previous_b1_sigma2.clone(),
     });
 
-    if data.history1.len() > 100 {
+    if data.history1.len() > 500 {
         data.history1.remove(0);
     }
 
@@ -142,7 +142,7 @@ fn learn1_by_2(
         previous_b2_sigma1: previous_b2_sigma1.clone(),
     });
 
-    if data.history2.len() > 100 {
+    if data.history2.len() > 500 {
         data.history2.remove(0);
     }
 
@@ -307,20 +307,20 @@ fn optimize_policy1(
     previous_sigma1: &[f64; 2],
     previous_b1_sigma2: &[f64; 2],
 ) -> [f64; 2] {
-    let mut sigma1 = previous_sigma1.clone();
     let mut b1_sigma2_prediction = previous_b1_sigma2.clone();
 
-    loop {
-        sigma1 = best_response1(&b1_sigma2_prediction, previous_sigma1);
-        b1_sigma2_prediction = predict2_by_1(data, &sigma1, previous_b1_sigma2);
+    let func_to_minimize = |b1_sigma2_prediction| {
+        let b1_sigma2_prediction_prime = predict2_by_1(
+            data,
+            &best_response1(&b1_sigma2_prediction, previous_sigma1),
+            previous_b1_sigma2,
+        );
+        distance(&b1_sigma2_prediction, &b1_sigma2_prediction_prime)
+    };
 
-        if distance(&b1_sigma2_prediction, previous_b1_sigma2) < 0.2 {
-            break;
-        }
+    todo!();
 
-        // println!("sigma1: {:#?}", sigma1);
-        // println!("b1_sigma2: {:#?}", b1_sigma2_prediction);
-    }
+    let sigma1 = best_response1(&b1_sigma2_prediction, previous_sigma1);
 
     sigma1
 }
@@ -330,20 +330,20 @@ fn optimize_policy2(
     previous_sigma2: &[f64; 2],
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
-    let mut sigma2 = previous_sigma2.clone();
     let mut b2_sigma1_prediction = previous_b2_sigma1.clone();
 
-    loop {
-        sigma2 = best_response2(&b2_sigma1_prediction, previous_sigma2);
-        b2_sigma1_prediction = predict1_by_2(data, &sigma2, previous_b2_sigma1);
+    let func_to_minimize = |b2_sigma1_prediction| {
+        let b2_sigma1_prediction_prime = predict1_by_2(
+            data,
+            &best_response1(&b2_sigma1_prediction, previous_sigma2),
+            previous_b2_sigma1,
+        );
+        distance(&b2_sigma1_prediction, &b2_sigma1_prediction_prime)
+    };
 
-        if distance(&b2_sigma1_prediction, previous_b2_sigma1) < 0.2 {
-            break;
-        }
+    todo!();
 
-        // println!("sigma2: {:#?}", sigma2);
-        // println!("b2_sigma1: {:#?}", b2_sigma1_prediction);
-    }
+    let sigma2 = best_response2(&b2_sigma1_prediction, previous_sigma2);
 
     sigma2
 }
