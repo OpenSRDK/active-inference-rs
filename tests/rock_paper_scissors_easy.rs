@@ -142,19 +142,26 @@ fn predict(
             .exact(&y_rock_prop_scissors)
             .unwrap();
 
-    let result_rock_prop_scissors = params_rock_prop_scissors.gp_predict(&xs).unwrap();
+    let result_rock_prop_scissors = params_rock_prop_scissors
+        .gp_predict(&xs)
+        .unwrap()
+        .mu()
+        .exp();
 
     let params_paper_prop_scissors = BaseEllipticalProcessParams::new(kernel, x, theta, sigma)
         .unwrap()
         .exact(&y_paper_prop_scissors)
         .unwrap();
 
-    let result_paper_prop_scissors = params_paper_prop_scissors.gp_predict(&xs).unwrap();
+    let result_paper_prop_scissors = params_paper_prop_scissors
+        .gp_predict(&xs)
+        .unwrap()
+        .mu()
+        .exp();
 
-    let scissors =
-        1.0 / (1.0 / result_rock_prop_scissors.mu() + 1.0 / result_paper_prop_scissors.mu() + 1.0);
-    let rock = scissors / result_rock_prop_scissors.mu();
-    let paper = scissors / esult_paper_prop_scissors.mu();
+    let scissors = 1.0 / (1.0 / result_rock_prop_scissors + 1.0 / result_paper_prop_scissors + 1.0);
+    let rock = scissors / result_rock_prop_scissors;
+    let paper = scissors / esult_paper_prop_scissors;
 
     [rock, paper]
 }
@@ -164,11 +171,13 @@ fn predict2_by_1(data: &Data, sigma1: &[f64; 2], previous_b1_sigma2: &[f64; 2]) 
         .b1_sigma2_history
         .iter()
         .map(|b1_sigma2| (1.0 - b1_sigma2[0] - b1_sigma2[1]) / b1_sigma2[0])
+        .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
     let y_paper_prop_scissors = data
         .b1_sigma2_history
         .iter()
         .map(|b1_sigma2| (1.0 - b1_sigma2[0] - b1_sigma2[1]) / b1_sigma2[1])
+        .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
 
     let x = data
@@ -188,11 +197,13 @@ fn predict1_by_2(data: &Data, sigma2: &[f64; 2], previous_b2_sigma1: &[f64; 2]) 
         .b2_sigma1_history
         .iter()
         .map(|b2_sigma1| (1.0 - b2_sigma1[0] - b2_sigma1[1]) / b2_sigma1[0])
+        .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
     let y_paper_prop_scissors = data
         .b2_sigma1_history
         .iter()
         .map(|b2_sigma1| (1.0 - b2_sigma1[0] - b2_sigma1[1]) / b2_sigma1[1])
+        .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
 
     let x = data
