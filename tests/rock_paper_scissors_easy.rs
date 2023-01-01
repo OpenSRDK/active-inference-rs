@@ -298,6 +298,10 @@ fn best_response2(b2_sigma1: &[f64; 2], previous_sigma2: &[f64; 2]) -> [f64; 2] 
     best_response(b2_sigma1, previous_sigma2)
 }
 
+fn distance(sigma: &[f64; 2], sigma_prime: &[f64; 2]) -> f64 {
+    ((sigma[0] - sigma_prime[0]).powi(2) + (sigma[1] - sigma_prime[1]).powi(2)).sqrt()
+}
+
 fn optimize_policy1(
     data: &Data,
     previous_sigma1: &[f64; 2],
@@ -306,9 +310,13 @@ fn optimize_policy1(
     let mut sigma1 = previous_sigma1.clone();
     let mut b1_sigma2_prediction = previous_b1_sigma2.clone();
 
-    for _ in 0..100 {
+    loop {
         sigma1 = best_response1(&b1_sigma2_prediction, previous_sigma1);
         b1_sigma2_prediction = predict2_by_1(data, &sigma1, previous_b1_sigma2);
+
+        if distance(&b1_sigma2_prediction, previous_b1_sigma2) < 0.2 {
+            break;
+        }
 
         // println!("sigma1: {:#?}", sigma1);
         // println!("b1_sigma2: {:#?}", b1_sigma2_prediction);
@@ -325,9 +333,13 @@ fn optimize_policy2(
     let mut sigma2 = previous_sigma2.clone();
     let mut b2_sigma1_prediction = previous_b2_sigma1.clone();
 
-    for _ in 0..100 {
+    loop {
         sigma2 = best_response2(&b2_sigma1_prediction, previous_sigma2);
         b2_sigma1_prediction = predict1_by_2(data, &sigma2, previous_b2_sigma1);
+
+        if distance(&b2_sigma1_prediction, previous_b2_sigma1) < 0.2 {
+            break;
+        }
 
         // println!("sigma2: {:#?}", sigma2);
         // println!("b2_sigma1: {:#?}", b2_sigma1_prediction);
