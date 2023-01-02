@@ -1,4 +1,5 @@
 use crate::opensrdk_probability::rand::SeedableRng;
+use cmaes::DVector;
 use opensrdk_kernel_method::*;
 use opensrdk_probability::nonparametric::*;
 use opensrdk_probability::rand::RngCore;
@@ -56,22 +57,23 @@ fn test_main() {
 
         // println!("{:#?}, {:#?}", hand1, hand2);
 
-        let previous_b1_sigma2 = b1_sigma2;
-        let previous_b2_sigma1 = b2_sigma1;
+        let previous_b1_sigma2 = b1_sigma2.clone();
+        let previous_b2_sigma1 = b2_sigma1.clone();
         b1_sigma2 = update_belief(t, hand2, &previous_b1_sigma2);
         b2_sigma1 = update_belief(t, hand1, &previous_b2_sigma1);
 
-        learn2_by_1(&mut data, &b1_sigma2, &sigma1, &previous_b1_sigma2);
-        learn1_by_2(&mut data, &b2_sigma1, &sigma2, &previous_b2_sigma1);
+        if t % 100 == 0 {
+            learn2_by_1(&mut data, &b1_sigma2, &sigma1, &previous_b1_sigma2);
+            learn1_by_2(&mut data, &b2_sigma1, &sigma2, &previous_b2_sigma1);
 
-        let previous_sigma1 = sigma1;
-        let previous_sigma2 = sigma2;
-        sigma1 = optimize_policy1(&data, &previous_sigma1, &previous_b1_sigma2);
-        sigma2 = optimize_policy2(&data, &previous_sigma2, &previous_b2_sigma1);
+            let previous_sigma1 = sigma1.clone();
+            let previous_sigma2 = sigma2.clone();
+            sigma1 = optimize_policy1(&data, &previous_sigma1, &previous_b1_sigma2);
+            sigma2 = optimize_policy2(&data, &previous_sigma2, &previous_b2_sigma1);
 
-        println!("sigma1: {:#?}, b1_sigma2: {:#?}", sigma1, b1_sigma2);
-        println!("sigma2: {:#?}, b2_sigma1: {:#?}", sigma2, b2_sigma1);
-
+            println!("sigma1: {:#?}, b1_sigma2: {:#?}", sigma1, b1_sigma2);
+            println!("sigma2: {:#?}, b2_sigma1: {:#?}", sigma2, b2_sigma1);
+        }
         t = t + 1;
     }
 }
@@ -93,7 +95,7 @@ fn random_hand(sigma: &[f64; 2], rng: &mut dyn RngCore) -> Hand {
 
 fn update_belief(t: usize, others_hand: Hand, others_policy: &[f64; 2]) -> [f64; 2] {
     let mut result = others_policy.clone();
-    let t = if t > 10 { 2.0 } else { t as f64 };
+    let t = if t > 10 { 10.0 } else { t as f64 };
     match others_hand {
         Hand::Rock => {
             result[0] = (t * result[0] + 1.0) / (t + 1.0);
@@ -241,16 +243,29 @@ fn predict1_by_2(data: &Data, sigma2: &[f64; 2], previous_b2_sigma1: &[f64; 2]) 
 }
 
 fn expected_utility(my_policy: &[f64; 2], others_policy: &[f64; 2]) -> f64 {
-    let sigma1_s = 1 as f64 - my_policy[0] - my_policy[1];
-    let next_b1_sigma2_s = 1 as f64 - others_policy[0] - others_policy[1];
-    let utility = 3 as f64
-        * (my_policy[0] * next_b1_sigma2_s
+    let my_policy = [
+        my_policy[0],
+        my_policy[1],
+        1.0 - my_policy[0] - my_policy[1],
+    ];
+    let others_policy = [
+        others_policy[0],
+        others_policy[1],
+        1.0 - others_policy[0] - others_policy[1],
+    ];
+
+    let utility = 3.0
+        * (my_policy[0] * others_policy[2]
             + my_policy[1] * others_policy[0]
-            + sigma1_s * others_policy[1])
-        + 1 as f64
+            + my_policy[2] * others_policy[1])
+        + 1.0
             * (my_policy[0] * others_policy[0]
                 + my_policy[1] * others_policy[1]
-                + sigma1_s * next_b1_sigma2_s);
+                + my_policy[2] * others_policy[2])
+        + 0.0
+            * (my_policy[0] * others_policy[1]
+                + my_policy[1] * others_policy[2]
+                + my_policy[2] * others_policy[0]);
 
     utility
 }
@@ -307,18 +322,21 @@ fn optimize_policy1(
     previous_sigma1: &[f64; 2],
     previous_b1_sigma2: &[f64; 2],
 ) -> [f64; 2] {
-    let mut b1_sigma2_prediction = previous_b1_sigma2.clone();
-
-    let func_to_minimize = |b1_sigma2_prediction| {
+    let func_to_minimize = |b1_sigma2_prediction: &[f64; 2]| {
         let b1_sigma2_prediction_prime = predict2_by_1(
             data,
-            &best_response1(&b1_sigma2_prediction, previous_sigma1),
+            &best_response1(b1_sigma2_prediction, previous_sigma1),
             previous_b1_sigma2,
         );
-        distance(&b1_sigma2_prediction, &b1_sigma2_prediction_prime)
+        distance(b1_sigma2_prediction, &b1_sigma2_prediction_prime)
     };
 
-    todo!();
+    let solution = cmaes::fmin(
+        |x: &DVector<f64>| func_to_minimize(&[x[0], x[1]]),
+        previous_b1_sigma2.to_vec(),
+        1.0,
+    );
+    let b1_sigma2_prediction = [solution.point[0], solution.point[1]];
 
     let sigma1 = best_response1(&b1_sigma2_prediction, previous_sigma1);
 
@@ -330,18 +348,21 @@ fn optimize_policy2(
     previous_sigma2: &[f64; 2],
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
-    let mut b2_sigma1_prediction = previous_b2_sigma1.clone();
-
-    let func_to_minimize = |b2_sigma1_prediction| {
+    let func_to_minimize = |b2_sigma1_prediction: &[f64; 2]| {
         let b2_sigma1_prediction_prime = predict1_by_2(
             data,
-            &best_response1(&b2_sigma1_prediction, previous_sigma2),
+            &best_response1(b2_sigma1_prediction, previous_sigma2),
             previous_b2_sigma1,
         );
-        distance(&b2_sigma1_prediction, &b2_sigma1_prediction_prime)
+        distance(b2_sigma1_prediction, &b2_sigma1_prediction_prime)
     };
 
-    todo!();
+    let solution = cmaes::fmin(
+        |x: &DVector<f64>| func_to_minimize(&[x[0], x[1]]),
+        previous_b2_sigma1.to_vec(),
+        1.0,
+    );
+    let b2_sigma1_prediction = [solution.point[0], solution.point[1]];
 
     let sigma2 = best_response2(&b2_sigma1_prediction, previous_sigma2);
 
