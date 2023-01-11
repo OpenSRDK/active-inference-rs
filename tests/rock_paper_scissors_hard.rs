@@ -348,23 +348,23 @@ fn optimize_policy2(
     previous_sigma2: &[f64; 2],
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
-    let func_to_minimize = |b2_sigma1_prediction: &[f64; 2]| {
-        let b2_sigma1_prediction_prime = predict1_by_2(
-            data,
-            &best_response2(b2_sigma1_prediction, previous_sigma2),
-            previous_b2_sigma1,
-        );
-        distance(b2_sigma1_prediction, &b2_sigma1_prediction_prime)
-    };
+    // let func_to_minimize = |b2_sigma1_prediction: &[f64; 2]| {
+    //     let b2_sigma1_prediction_prime = predict1_by_2(
+    //         data,
+    //         &best_response2(b2_sigma1_prediction, previous_sigma2),
+    //         previous_b2_sigma1,
+    //     );
+    //     distance(b2_sigma1_prediction, &b2_sigma1_prediction_prime)
+    // };
 
-    let solution = cmaes::fmin(
-        |x: &DVector<f64>| func_to_minimize(&[x[0], x[1]]),
-        previous_b2_sigma1.to_vec(),
-        1.0,
-    );
-    let b2_sigma1_prediction = [solution.point[0], solution.point[1]];
+    // let solution = cmaes::fmin(
+    //     |x: &DVector<f64>| func_to_minimize(&[x[0], x[1]]),
+    //     previous_b2_sigma1.to_vec(),
+    //     1.0,
+    // );
+    // let b2_sigma1_prediction = [solution.point[0], solution.point[1]];
 
-    let sigma2 = best_response2(&b2_sigma1_prediction, previous_sigma2);
+    let sigma2 = best_response2(&previous_b2_sigma1, previous_sigma2);
 
     sigma2
 }

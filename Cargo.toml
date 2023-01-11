@@ -15,5 +15,5 @@ opensrdk-probability =  "0.4.0"
 cmaes = "*"
 
 [dev-dependencies]
-blas-src = { version = "0.8", features = ["accelerate"] } 
-lapack-src = { version = "0.8", features = ["accelerate"] }
+blas-src = { version = "0.8", features = ["intel-mkl"] } 
+lapack-src = { version = "0.8", features = ["intel-mkl"] }
