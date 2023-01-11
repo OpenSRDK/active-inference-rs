@@ -51,9 +51,12 @@ fn test_main() {
     let mut b1_sigma2 = [0.2, 0.2];
     let mut b2_sigma1 = [0.2, 0.2];
     let mut t = 1usize;
+    let mut count: [u32; 3] = [0, 0, 0];
+
     loop {
         let hand1 = random_hand(&sigma1, &mut rng);
         let hand2 = random_hand(&sigma2, &mut rng);
+        result_count(hand1, hand2, &mut count);
 
         // println!("{:#?}, {:#?}", hand1, hand2);
 
@@ -73,6 +76,7 @@ fn test_main() {
 
             println!("sigma1: {:#?}, b1_sigma2: {:#?}", sigma1, b1_sigma2);
             println!("sigma2: {:#?}, b2_sigma1: {:#?}", sigma2, b2_sigma1);
+            println!("[1の勝ち, 2の勝ち, あいこ] = {:#?}", count);
         }
         t = t + 1;
     }
@@ -91,6 +95,27 @@ fn random_hand(sigma: &[f64; 2], rng: &mut dyn RngCore) -> Hand {
         Hand::Scissors
     };
     a_i
+}
+
+fn result_count(my_hand: Hand, others_hand: Hand, count: &mut [u32; 3]) -> &[u32; 3] {
+    match my_hand {
+        Hand::Rock => match others_hand {
+            Hand::Rock => count[2] += 1,
+            Hand::Paper => count[1] += 1,
+            Hand::Scissors => count[0] += 1,
+        },
+        Hand::Paper => match others_hand {
+            Hand::Rock => count[0] += 1,
+            Hand::Paper => count[2] += 1,
+            Hand::Scissors => count[1] += 1,
+        },
+        Hand::Scissors => match others_hand {
+            Hand::Rock => count[1] += 1,
+            Hand::Paper => count[0] += 1,
+            Hand::Scissors => count[2] += 1,
+        },
+    }
+    count
 }
 
 fn update_belief(t: usize, others_hand: Hand, others_policy: &[f64; 2]) -> [f64; 2] {
