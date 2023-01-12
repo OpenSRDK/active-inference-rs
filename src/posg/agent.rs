@@ -3,8 +3,9 @@ use opensrdk_kernel_method::RBF;
 use opensrdk_probability::{
     rand::{distributions::Uniform, rngs::StdRng, Rng, RngCore, SeedableRng},
     stein::SteinVariational,
-    ConditionableDistribution, ContinuousSamplesDistribution, DiscreteUniform, Distribution,
-    DistributionError, InstantDistribution, RandomVariable, SampleableDistribution,
+    ConditionableDistribution, ContinuousSamplesDistribution, DependentJoint, DiscreteUniform,
+    Distribution, DistributionError, IndependentJoint, InstantDistribution, RandomVariable,
+    SampleableDistribution,
 };
 use std::{clone, marker::PhantomData};
 
@@ -68,6 +69,7 @@ where
         )
     }
 
+    //GeneralizedKernelDensityEstimationに名称変更
     pub fn observe(&mut self, a_i: &Ai, o_i_next: &Oi) -> Result<f64, DistributionError> {
         let previous_state_sample_distr = &self.inferred_state;
         let previous_state = &previous_state_sample_distr.mean().unwrap();
@@ -80,15 +82,15 @@ where
         //self.observation, a_i, o_i_nextをつかって、inferred_s_next, inferred_a_othersを推定せよ
         //observationとpolicy_othersのトレイトを使って推定する
         //スタイン
-        let value = vec![o_i_next];
-        let likelihood = InstantDistribution::new(
-            |o_i_next, &((_a, inferred_a_others), inferred_s_next)| {
+        let value = o_i_next.transform_vec().0;
+        let likelihood_orig = InstantDistribution::new(
+            |o_i_next, &(inferred_a_others, inferred_s_next)| {
                 self.observation.p_kernel(
                     o_i_next,
                     &((a_i.clone(), inferred_a_others), inferred_s_next),
                 )
             },
-            |&((_a, inferred_a_others), inferred_s_next), rng| {
+            |&(inferred_a_others, inferred_s_next), rng| {
                 self.observation
                     .sample(&((a_i.clone(), inferred_a_others), inferred_s_next), rng)
             },
@@ -101,23 +103,28 @@ where
             |_s, rng| self.policy_others.sample(previous_state, rng),
         );
         let prior_rhs = previous_state_sample_distr.clone();
-        let prior = prior_lhs * prior_rhs;
+
+        let prior = IndependentJoint::new(prior_lhs, prior_rhs);
         let kernel = RBF;
         let kernel_params = [0.5, 0.5];
         let samples_orig = (0..10)
             .into_iter()
             .map(|v| {
                 let mut rng3 = StdRng::from_seed([v; 32]);
-                let theta_0 = rng3.gen_range(-5.0..=5.0);
+                let s_next_orig = rng3.gen_range(-5.0..=5.0);
                 let mut rng4 = StdRng::from_seed([v * 2; 32]);
-                let theta_1 = rng4.gen_range(-5.0..=5.0);
-                vec![theta_0, theta_1]
+                let a_others_orig = rng4.gen_range(-5.0..=5.0);
+                vec![s_next_orig, a_others_orig]
             })
             .collect::<Vec<Vec<f64>>>();
         let samples_theta = &mut ContinuousSamplesDistribution::new(samples_orig);
 
+        //let condition_diff = ;
+        //let likelihood = ConditionDifferentiableInstantDistribution::new(likelihood_orig, );
+        //o_i_nextにtransform_vecを使用
+
         let mut stein = SteinVariational::new(
-            value,
+            &value,
             &likelihood,
             &prior,
             &kernel,
