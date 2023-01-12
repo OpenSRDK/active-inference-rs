@@ -2,6 +2,7 @@ use crate::opensrdk_probability::rand::SeedableRng;
 use opensrdk_active_inference::{KnownObservation, NonParametricPolicyOthers, POSGAgent};
 use opensrdk_kernel_method::RBF;
 use opensrdk_probability::{
+    nonparametric::GeneralizedKernelDensity,
     rand::{prelude::StdRng, Rng},
     InstantDistribution, RandomVariable,
 };
@@ -52,6 +53,7 @@ fn test_main() {
         (Hand::Rock, Hand::Rock),
         KnownObservation::new(InstantDistribution::new(
             |x: &(Hand, Hand), theta: &((Hand, Hand), (Hand, Hand))| {
+                //
                 if *x == theta.1 && x.0 == theta.0 .0 && x.1 == theta.0 .1 {
                     Ok(1.0)
                 } else {
@@ -95,4 +97,8 @@ fn test_main() {
     }
 
     // TODO: confirm the convergence into Mixed Strategy Nash Equilibrium [0.33, 0.33, 0.33]
+    //自分のpolicyがこうの時に相手のpolicyがこうという関数をnonparaでいいので関数近似したい
+    //相手の最適反応関数を使って、ベルマン方程式的なものを考え、方策を学習していく
+    //ベルマン方程式は、事実上使えない（Q学習的なものになる）、world modelかpilcoのような手法で方策を学習していくことになる。
+    //相手の最適反応関数を考慮に入れて学習すれば、ナッシュ均衡にいたるのでは（仮説）
 }
