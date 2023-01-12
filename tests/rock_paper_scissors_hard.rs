@@ -56,6 +56,7 @@ fn test_main() {
         let hand1 = random_hand(&sigma1, &mut rng);
         let hand2 = random_hand(&sigma2, &mut rng);
         result_count(hand1, hand2, &mut count);
+        let win_rate1 = count[0] as f64 / t as f64;
 
         // println!("{:#?}, {:#?}", hand1, hand2);
 
@@ -76,6 +77,7 @@ fn test_main() {
             println!("sigma1: {:#?}, b1_sigma2: {:#?}", sigma1, b1_sigma2);
             println!("sigma2: {:#?}, b2_sigma1: {:#?}", sigma2, b2_sigma1);
             println!("[1の勝ち, 2の勝ち, あいこ] = {:#?}", count);
+            println!("1の勝率: {:#?}", win_rate1);
         }
         t = t + 1;
     }
