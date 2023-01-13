@@ -1,5 +1,6 @@
 use crate::opensrdk_probability::rand::SeedableRng;
-use cmaes::DVector;
+use cmaes::restart::{RestartOptions, RestartStrategy};
+use cmaes::{CMAESOptions, DVector, Mode};
 use opensrdk_kernel_method::*;
 use opensrdk_probability::nonparametric::*;
 use opensrdk_probability::rand::RngCore;
@@ -10,6 +11,8 @@ extern crate lapack_src;
 extern crate opensrdk_linear_algebra;
 extern crate opensrdk_probability;
 extern crate rayon;
+
+const STUPID2: bool = false;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Hand {
@@ -331,7 +334,7 @@ fn best_response(others_policy: &[f64; 2], previous_my_policy: &[f64; 2]) -> [f6
     ]
 }
 
-fn best_response1(b1_sigma2: &[f64; 2], previous_sigma1: &[f64; 2]) -> [f64; 2] {
+fn _best_response1(b1_sigma2: &[f64; 2], previous_sigma1: &[f64; 2]) -> [f64; 2] {
     best_response(b1_sigma2, previous_sigma1)
 }
 
@@ -339,32 +342,30 @@ fn best_response2(b2_sigma1: &[f64; 2], previous_sigma2: &[f64; 2]) -> [f64; 2] 
     best_response(b2_sigma1, previous_sigma2)
 }
 
-fn distance(sigma: &[f64; 2], sigma_prime: &[f64; 2]) -> f64 {
+fn _distance(sigma: &[f64; 2], sigma_prime: &[f64; 2]) -> f64 {
     ((sigma[0] - sigma_prime[0]).powi(2) + (sigma[1] - sigma_prime[1]).powi(2)).sqrt()
 }
 
 fn optimize_policy1(
     data: &Data,
-    previous_sigma1: &[f64; 2],
+    _previous_sigma1: &[f64; 2],
     previous_b1_sigma2: &[f64; 2],
 ) -> [f64; 2] {
-    let func_to_minimize = |b1_sigma2_prediction: &[f64; 2]| {
-        let b1_sigma2_prediction_prime = predict2_by_1(
-            data,
-            &best_response1(b1_sigma2_prediction, previous_sigma1),
-            previous_b1_sigma2,
-        );
-        distance(b1_sigma2_prediction, &b1_sigma2_prediction_prime)
+    let func_to_maximize = |sigma1: &[f64; 2]| {
+        let b1_sigma2_prediction = predict2_by_1(data, sigma1, previous_b1_sigma2);
+        expected_utility(sigma1, &b1_sigma2_prediction)
     };
 
-    let solution = cmaes::fmin(
-        |x: &DVector<f64>| func_to_minimize(&[x[0], x[1]]),
-        previous_b1_sigma2.to_vec(),
-        1.0,
-    );
-    let b1_sigma2_prediction = [solution.point[0], solution.point[1]];
+    let restarter = RestartOptions::new(2, 0.0..=1.0, RestartStrategy::BIPOP(Default::default()))
+        .mode(Mode::Maximize)
+        .enable_printing(true)
+        .build()
+        .unwrap();
 
-    let sigma1 = best_response1(&b1_sigma2_prediction, previous_sigma1);
+    let result = restarter.run_parallel(|| |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]));
+
+    let solution = result.best.unwrap();
+    let sigma1 = [solution.point[0], solution.point[1]];
 
     sigma1
 }
@@ -374,23 +375,28 @@ fn optimize_policy2(
     previous_sigma2: &[f64; 2],
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
-    // let func_to_minimize = |b2_sigma1_prediction: &[f64; 2]| {
-    //     let b2_sigma1_prediction_prime = predict1_by_2(
-    //         data,
-    //         &best_response2(b2_sigma1_prediction, previous_sigma2),
-    //         previous_b2_sigma1,
-    //     );
-    //     distance(b2_sigma1_prediction, &b2_sigma1_prediction_prime)
-    // };
+    if STUPID2 {
+        let sigma2 = best_response2(&previous_b2_sigma1, previous_sigma2);
 
-    // let solution = cmaes::fmin(
-    //     |x: &DVector<f64>| func_to_minimize(&[x[0], x[1]]),
-    //     previous_b2_sigma1.to_vec(),
-    //     1.0,
-    // );
-    // let b2_sigma1_prediction = [solution.point[0], solution.point[1]];
+        sigma2
+    } else {
+        let func_to_maximize = |sigma2: &[f64; 2]| {
+            let b2_sigma1_prediction = predict1_by_2(data, sigma2, previous_b2_sigma1);
+            expected_utility(sigma2, &b2_sigma1_prediction)
+        };
 
-    let sigma2 = best_response2(&previous_b2_sigma1, previous_sigma2);
+        let restarter =
+            RestartOptions::new(2, 0.0..=1.0, RestartStrategy::BIPOP(Default::default()))
+                .mode(Mode::Maximize)
+                .enable_printing(true)
+                .build()
+                .unwrap();
 
-    sigma2
+        let result = restarter.run_parallel(|| |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]));
+
+        let solution = result.best.unwrap();
+        let sigma2 = [solution.point[0], solution.point[1]];
+
+        sigma2
+    }
 }
