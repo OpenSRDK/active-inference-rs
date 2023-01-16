@@ -272,9 +272,9 @@ fn predict1_by_2(data: &Data, sigma2: &[f64; 2], previous_b2_sigma1: &[f64; 2]) 
 }
 
 fn expected_utility(my_policy: &[f64; 2], others_policy: &[f64; 2]) -> f64 {
-    if (my_policy[0] <= 0.0 || my_policy[0] >= 1.0)
-        || (my_policy[1] <= 0.0 || my_policy[1] >= 1.0)
-        || ((my_policy[0] + my_policy[1]) <= 0.0 || (my_policy[0] + my_policy[1]) >= 1.0)
+    if (my_policy[0] < 0.0 || my_policy[0] > 1.0)
+        || (my_policy[1] < 0.0 || my_policy[1] > 1.0)
+        || ((my_policy[0] + my_policy[1]) < 0.0 || (my_policy[0] + my_policy[1]) > 1.0)
     {
         return -50000.0;
     }
@@ -382,7 +382,7 @@ fn optimize_policy2(
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
     if STUPID2 {
-        let sigma2 = best_response2(&previous_b2_sigma1, previous_sigma2);
+        let sigma2 = best_response2(&previous_b2_sigma1, &previous_sigma2);
 
         sigma2
     } else {
