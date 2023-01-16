@@ -365,8 +365,7 @@ fn optimize_policy2(
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
     if STUPID2 {
-
-        let sigma2 = best_response2(&previous_b2_sigma1, &previous_sigma2);
+        let sigma2 = best_response(previous_b2_sigma1, previous_sigma2);
 
         sigma2
     } else {
