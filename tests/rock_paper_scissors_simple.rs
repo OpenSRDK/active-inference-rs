@@ -1,6 +1,5 @@
 use crate::opensrdk_probability::rand::SeedableRng;
-use cmaes::restart::{RestartOptions, RestartStrategy};
-use cmaes::{CMAESOptions, DVector, Mode};
+use cmaes::{fmax, DVector};
 use opensrdk_kernel_method::*;
 use opensrdk_probability::nonparametric::*;
 use opensrdk_probability::rand::RngCore;
@@ -12,7 +11,7 @@ extern crate opensrdk_linear_algebra;
 extern crate opensrdk_probability;
 extern crate rayon;
 
-const STUPID2: bool = false;
+const STUPID2: bool = true;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Hand {
@@ -340,21 +339,9 @@ fn best_response(others_policy: &[f64; 2], previous_my_policy: &[f64; 2]) -> [f6
     ]
 }
 
-fn _best_response1(b1_sigma2: &[f64; 2], previous_sigma1: &[f64; 2]) -> [f64; 2] {
-    best_response(b1_sigma2, previous_sigma1)
-}
-
-fn best_response2(b2_sigma1: &[f64; 2], previous_sigma2: &[f64; 2]) -> [f64; 2] {
-    best_response(b2_sigma1, previous_sigma2)
-}
-
-fn _distance(sigma: &[f64; 2], sigma_prime: &[f64; 2]) -> f64 {
-    ((sigma[0] - sigma_prime[0]).powi(2) + (sigma[1] - sigma_prime[1]).powi(2)).sqrt()
-}
-
 fn optimize_policy1(
     data: &Data,
-    _previous_sigma1: &[f64; 2],
+    previous_sigma1: &[f64; 2],
     previous_b1_sigma2: &[f64; 2],
 ) -> [f64; 2] {
     let func_to_maximize = |sigma1: &[f64; 2]| {
@@ -362,15 +349,11 @@ fn optimize_policy1(
         expected_utility(sigma1, &b1_sigma2_prediction)
     };
 
-    let restarter = RestartOptions::new(2, 0.0..=1.0, RestartStrategy::BIPOP(Default::default()))
-        .mode(Mode::Maximize)
-        .enable_printing(true)
-        .build()
-        .unwrap();
-
-    let result = restarter.run_parallel(|| |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]));
-
-    let solution = result.best.unwrap();
+    let solution = fmax(
+        |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]),
+        previous_sigma1.to_vec(),
+        0.01,
+    );
     let sigma1 = [solution.point[0], solution.point[1]];
 
     sigma1
@@ -382,7 +365,7 @@ fn optimize_policy2(
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
     if STUPID2 {
-        let sigma2 = best_response2(&previous_b2_sigma1, previous_sigma2);
+        let sigma2 = best_response(&previous_b2_sigma1, previous_sigma2);
 
         sigma2
     } else {
@@ -391,16 +374,11 @@ fn optimize_policy2(
             expected_utility(sigma2, &b2_sigma1_prediction)
         };
 
-        let restarter =
-            RestartOptions::new(2, 0.0..=1.0, RestartStrategy::BIPOP(Default::default()))
-                .mode(Mode::Maximize)
-                .enable_printing(true)
-                .build()
-                .unwrap();
-
-        let result = restarter.run_parallel(|| |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]));
-
-        let solution = result.best.unwrap();
+        let solution = fmax(
+            |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]),
+            previous_sigma2.to_vec(),
+            0.01,
+        );
         let sigma2 = [solution.point[0], solution.point[1]];
 
         sigma2
