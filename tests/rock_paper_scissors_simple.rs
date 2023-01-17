@@ -305,7 +305,7 @@ fn expected_utility(my_policy: &[f64; 2], others_policy: &[f64; 2]) -> f64 {
     utility
 }
 
-fn best_response(others_policy: &[f64; 2], previous_my_policy: &[f64; 2]) -> [f64; 2] {
+fn _best_response(others_policy: &[f64; 2], previous_my_policy: &[f64; 2]) -> [f64; 2] {
     // https://tsujimotter.hatenablog.com/entry/the-proof-of-the-existence-of-nash-equilibria
     let potential_improvement = |others_policy: &[f64; 2],
                                  previous_my_policy: &[f64; 2],
