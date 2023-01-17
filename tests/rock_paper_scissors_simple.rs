@@ -11,6 +11,7 @@ extern crate opensrdk_linear_algebra;
 extern crate opensrdk_probability;
 extern crate rayon;
 
+const STUPID1: bool = true;
 const STUPID2: bool = true;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -67,7 +68,7 @@ fn test_main() {
         b1_sigma2 = update_belief(t, hand2, &previous_b1_sigma2);
         b2_sigma1 = update_belief(t, hand1, &previous_b2_sigma1);
 
-        if t % 100 == 0 {
+        if t % 1000 == 0 {
             learn2_by_1(&mut data, &b1_sigma2, &sigma1, &previous_b1_sigma2);
             learn1_by_2(&mut data, &b2_sigma1, &sigma2, &previous_b2_sigma1);
 
@@ -345,7 +346,11 @@ fn optimize_policy1(
     previous_b1_sigma2: &[f64; 2],
 ) -> [f64; 2] {
     let func_to_maximize = |sigma1: &[f64; 2]| {
-        let b1_sigma2_prediction = predict2_by_1(data, sigma1, previous_b1_sigma2);
+        let b1_sigma2_prediction = if STUPID1 {
+            previous_b1_sigma2.to_owned()
+        } else {
+            predict2_by_1(data, sigma1, previous_b1_sigma2)
+        };
         expected_utility(sigma1, &b1_sigma2_prediction)
     };
 
