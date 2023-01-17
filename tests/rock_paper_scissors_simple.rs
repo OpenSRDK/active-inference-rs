@@ -364,23 +364,21 @@ fn optimize_policy2(
     previous_sigma2: &[f64; 2],
     previous_b2_sigma1: &[f64; 2],
 ) -> [f64; 2] {
-    if STUPID2 {
-        let sigma2 = best_response(previous_b2_sigma1, previous_sigma2);
-
-        sigma2
-    } else {
-        let func_to_maximize = |sigma2: &[f64; 2]| {
-            let b2_sigma1_prediction = predict1_by_2(data, sigma2, previous_b2_sigma1);
-            expected_utility(sigma2, &b2_sigma1_prediction)
+    let func_to_maximize = |sigma2: &[f64; 2]| {
+        let b2_sigma1_prediction = if STUPID2 {
+            previous_b2_sigma1.to_owned()
+        } else {
+            predict1_by_2(data, sigma2, previous_b2_sigma1)
         };
+        expected_utility(sigma2, &b2_sigma1_prediction)
+    };
 
-        let solution = fmax(
-            |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]),
-            previous_sigma2.to_vec(),
-            0.01,
-        );
-        let sigma2 = [solution.point[0], solution.point[1]];
+    let solution = fmax(
+        |x: &DVector<f64>| func_to_maximize(&[x[0], x[1]]),
+        previous_sigma2.to_vec(),
+        0.01,
+    );
+    let sigma2 = [solution.point[0], solution.point[1]];
 
-        sigma2
-    }
+    sigma2
 }
