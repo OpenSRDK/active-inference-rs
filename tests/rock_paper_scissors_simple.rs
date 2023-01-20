@@ -11,8 +11,8 @@ extern crate opensrdk_linear_algebra;
 extern crate opensrdk_probability;
 extern crate rayon;
 
-const STUPID1: bool = true;
-const STUPID2: bool = true;
+const STUPID1: bool = false;
+const STUPID2: bool = false;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Hand {
@@ -55,6 +55,9 @@ fn test_main() {
     let mut b2_sigma1 = [0.2, 0.2];
     let mut t = 1usize;
     let mut count: [u32; 3] = [0, 0, 0];
+
+    let alpha = 0.05;
+
     loop {
         let hand1 = random_hand(&sigma1, &mut rng);
         let hand2 = random_hand(&sigma2, &mut rng);
@@ -74,8 +77,17 @@ fn test_main() {
 
             let previous_sigma1 = sigma1.clone();
             let previous_sigma2 = sigma2.clone();
-            sigma1 = optimize_policy1(&data, &previous_sigma1, &previous_b1_sigma2);
-            sigma2 = optimize_policy2(&data, &previous_sigma2, &previous_b2_sigma1);
+            let optimized_sigma1 = optimize_policy1(&data, &previous_sigma1, &previous_b1_sigma2);
+            let optimized_sigma2 = optimize_policy2(&data, &previous_sigma2, &previous_b2_sigma1);
+
+            sigma1 = [
+                (1.0 - alpha) * sigma1[0] + alpha * optimized_sigma1[0],
+                (1.0 - alpha) * sigma1[1] + alpha * optimized_sigma1[1],
+            ];
+            sigma2 = [
+                (1.0 - alpha) * sigma2[0] + alpha * optimized_sigma2[0],
+                (1.0 - alpha) * sigma2[1] + alpha * optimized_sigma2[1],
+            ];
 
             println!("sigma1: {:#?}, b1_sigma2: {:#?}", sigma1, b1_sigma2);
             println!("sigma2: {:#?}, b2_sigma1: {:#?}", sigma2, b2_sigma1);
