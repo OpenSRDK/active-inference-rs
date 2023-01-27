@@ -399,3 +399,78 @@ fn optimize_policy2(
 
     sigma2
 }
+
+fn predict2(
+    y_rock_prop_scissors: &[f64],
+    y_paper_prop_scissors: &[f64],
+    x: Vec<Vec<f64>>,
+    xs: Vec<f64>,
+) -> [f64; 2] {
+    let kernel = RBF + Periodic;
+    let theta = vec![1.0; kernel.params_len()];
+    let sigma = 1.0;
+
+    let base_params = BaseEllipticalProcessParams::new(kernel, x, theta, sigma).unwrap();
+
+    let params_rock_prop_scissors = base_params.clone().exact(y_rock_prop_scissors).unwrap();
+    let mu_rock_prop_scissors = params_rock_prop_scissors.gp_predict(&xs).unwrap().mu();
+    let sigma_rock_prop_scissors = params_rock_prop_scissors.gp_predict(&xs).unwrap().sigma();
+    let var_rock_prop_scissors = sigma_rock_prop_scissors.powi(2);
+
+    // println!("r_rock_scissors: {}", result_rock_prop_scissors);
+
+    let params_paper_prop_scissors = base_params.exact(y_paper_prop_scissors).unwrap();
+    let mu_paper_prop_scissors = params_paper_prop_scissors.gp_predict(&xs).unwrap().mu();
+    let sigma_paper_prop_scissors = params_paper_prop_scissors.gp_predict(&xs).unwrap().sigma();
+    let var_paper_prop_scissors = sigma_paper_prop_scissors.powi(2);
+
+    // println!("r_paper_scissors: {}", result_paper_prop_scissors);
+
+    let mu_scissors = 1.0 / (1.0 / mu_rock_prop_scissors + 1.0 / mu_paper_prop_scissors + 1.0);
+    let var_scissors = todo!();
+    let rock = mu_scissors / mu_rock_prop_scissors;
+    let paper = mu_scissors / mu_paper_prop_scissors;
+
+    let param_rock = todo!();
+    let param_paper = todo!();
+    let param_scissors = todo!();
+
+    todo!()
+}
+
+fn predict_func_to_maximize1(
+    data: &Data,
+    sigma2: &[f64; 2],
+    previous_b2_sigma1: &[f64; 2],
+) -> [f64; 2] {
+    let y_rock_prop_scissors = data
+        .history2
+        .iter()
+        .map(|page| page.b2_sigma1)
+        .map(|b2_sigma1| (1.0 - b2_sigma1[0] - b2_sigma1[1]) / b2_sigma1[0])
+        // .map(|prop| prop.ln())
+        .collect::<Vec<f64>>();
+    let y_paper_prop_scissors = data
+        .history2
+        .iter()
+        .map(|page| page.b2_sigma1)
+        .map(|b2_sigma1| (1.0 - b2_sigma1[0] - b2_sigma1[1]) / b2_sigma1[1])
+        // .map(|prop| prop.ln())
+        .collect::<Vec<f64>>();
+
+    // println!("his_r_s_1by2: {:#?}", y_rock_prop_scissors);
+    // println!("his_p_s_1by2: {:#?}", y_paper_prop_scissors);
+
+    let x = data
+        .history2
+        .iter()
+        .map(|page| (page.sigma2, page.previous_b2_sigma1))
+        .map(|(sigma2, previous_b2_sigma1)| [sigma2.to_vec(), previous_b2_sigma1.to_vec()].concat())
+        .collect::<Vec<_>>();
+
+    let xs = [sigma2.to_vec(), previous_b2_sigma1.to_vec()].concat();
+
+    let b1_sigma2_prediction = predict2(&y_rock_prop_scissors, &y_paper_prop_scissors, x, xs);
+    expected_utility(sigma2, &b1_sigma2_prediction);
+    todo!()
+}
