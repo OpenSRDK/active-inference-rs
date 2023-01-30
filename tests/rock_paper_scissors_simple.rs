@@ -49,10 +49,10 @@ fn test_main() {
         history1: vec![],
         history2: vec![],
     };
-    let mut sigma1 = [0.25, 0.25];
-    let mut sigma2 = [0.25, 0.25];
-    let mut b1_sigma2 = [0.2, 0.2];
-    let mut b2_sigma1 = [0.2, 0.2];
+    let mut sigma1 = [0.50, 0.50];
+    let mut sigma2 = [0.50, 0.50];
+    let mut b1_sigma2 = [0.3333, 0.3333];
+    let mut b2_sigma1 = [0.3333, 0.3333];
     let mut t = 1usize;
     let mut count: [u32; 3] = [0, 0, 0];
 
@@ -89,8 +89,28 @@ fn test_main() {
                 (1.0 - alpha) * sigma2[1] + alpha * optimized_sigma2[1],
             ];
 
-            println!("sigma1: {:#?}, b1_sigma2: {:#?}", sigma1, b1_sigma2);
-            println!("sigma2: {:#?}, b2_sigma1: {:#?}", sigma2, b2_sigma1);
+            let sigma1_s = 1.0 / (1.0 / sigma1[0] + 1.0 / sigma1[1] + 1.0);
+            let sigma1_r = sigma1_s / sigma1[0];
+            let sigma1_p = sigma1_s / sigma1[1];
+            let rps1 = [sigma1_r, sigma1_p, sigma1_s];
+
+            let b1_sigma2_s = 1.0 / (1.0 / b1_sigma2[0] + 1.0 / b1_sigma2[1] + 1.0);
+            let b1_sigma2_r = b1_sigma2_s / b1_sigma2[0];
+            let b1_sigma2_p = b1_sigma2_s / b1_sigma2[1];
+            let b1_rps2 = [b1_sigma2_r, b1_sigma2_p, b1_sigma2_s];
+
+            let sigma2_s = 1.0 / (1.0 / sigma2[0] + 1.0 / sigma2[1] + 1.0);
+            let sigma2_r = sigma2_s / sigma2[0];
+            let sigma2_p = sigma2_s / sigma2[1];
+            let rps2 = [sigma2_r, sigma2_p, sigma2_s];
+
+            let b2_sigma1_s = 1.0 / (1.0 / b2_sigma1[0] + 1.0 / b2_sigma1[1] + 1.0);
+            let b2_sigma1_r = b2_sigma1_s / b2_sigma1[0];
+            let b2_sigma1_p = b2_sigma1_s / b2_sigma1[1];
+            let b2_rps1 = [b2_sigma1_r, b2_sigma1_p, b2_sigma1_s];
+
+            println!("rps1: {:#?}, b1_rps2: {:#?}", rps1, b1_rps2);
+            println!("rps2: {:#?}, b2_rps1: {:#?}", rps2, b2_rps1);
             println!("[1の勝ち, 2の勝ち, あいこ] = {:#?}", count);
             println!("1の勝率: {:#?}", win_rate1);
         }
@@ -99,13 +119,14 @@ fn test_main() {
 }
 
 fn random_hand(sigma: &[f64; 2], rng: &mut dyn RngCore) -> Hand {
-    let sigma1_r = sigma[0];
-    let sigma1_p = sigma[1];
+    let sigma_s = 1.0 / (1.0 / sigma[0] + 1.0 / sigma[1] + 1.0);
+    let sigma_r = sigma_s / sigma[0];
+    let sigma_p = sigma_s / sigma[1];
     let random_value = rng.gen_range(0.0..1.0);
 
-    let a_i = if random_value < sigma1_r {
+    let a_i = if random_value < sigma_r {
         Hand::Rock
-    } else if random_value < sigma1_r + sigma1_p {
+    } else if random_value < sigma_r + sigma_p {
         Hand::Paper
     } else {
         Hand::Scissors
@@ -214,11 +235,11 @@ fn predict(
 
     // println!("r_paper_scissors: {}", result_paper_prop_scissors);
 
-    let scissors = 1.0 / (1.0 / result_rock_prop_scissors + 1.0 / result_paper_prop_scissors + 1.0);
-    let rock = scissors / result_rock_prop_scissors;
-    let paper = scissors / result_paper_prop_scissors;
+    // let scissors = 1.0 / (1.0 / result_rock_prop_scissors + 1.0 / result_paper_prop_scissors + 1.0);
+    // let rock = scissors / result_rock_prop_scissors;
+    // let paper = scissors / result_paper_prop_scissors;
 
-    [rock, paper]
+    [result_rock_prop_scissors, result_paper_prop_scissors]
 }
 
 fn predict2_by_1(data: &Data, sigma1: &[f64; 2], previous_b1_sigma2: &[f64; 2]) -> [f64; 2] {
@@ -226,14 +247,14 @@ fn predict2_by_1(data: &Data, sigma1: &[f64; 2], previous_b1_sigma2: &[f64; 2]) 
         .history1
         .iter()
         .map(|page| page.b1_sigma2)
-        .map(|b1_sigma2| (1.0 - b1_sigma2[0] - b1_sigma2[1]) / b1_sigma2[0])
+        .map(|b1_sigma2| b1_sigma2[0])
         // .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
     let y_paper_prop_scissors = data
         .history1
         .iter()
         .map(|page| page.b1_sigma2)
-        .map(|b1_sigma2| (1.0 - b1_sigma2[0] - b1_sigma2[1]) / b1_sigma2[1])
+        .map(|b1_sigma2| b1_sigma2[1])
         // .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
 
@@ -257,14 +278,14 @@ fn predict1_by_2(data: &Data, sigma2: &[f64; 2], previous_b2_sigma1: &[f64; 2]) 
         .history2
         .iter()
         .map(|page| page.b2_sigma1)
-        .map(|b2_sigma1| (1.0 - b2_sigma1[0] - b2_sigma1[1]) / b2_sigma1[0])
+        .map(|b2_sigma1| b2_sigma1[0])
         // .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
     let y_paper_prop_scissors = data
         .history2
         .iter()
         .map(|page| page.b2_sigma1)
-        .map(|b2_sigma1| (1.0 - b2_sigma1[0] - b2_sigma1[1]) / b2_sigma1[1])
+        .map(|b2_sigma1| b2_sigma1[1])
         // .map(|prop| prop.ln())
         .collect::<Vec<f64>>();
 
@@ -284,22 +305,28 @@ fn predict1_by_2(data: &Data, sigma2: &[f64; 2], previous_b2_sigma1: &[f64; 2]) 
 }
 
 fn expected_utility(my_policy: &[f64; 2], others_policy: &[f64; 2]) -> f64 {
+    let sigma1_s = 1.0 / (1.0 / my_policy[0] + 1.0 / my_policy[1] + 1.0);
+    let sigma1_r = sigma1_s / my_policy[0];
+    let sigma1_p = sigma1_s / my_policy[1];
+    let sum_sigma1 = sigma1_r + sigma1_p + sigma1_s;
+    let my_policy = [sigma1_r, sigma1_p, sigma1_s];
+
     if (my_policy[0] < 0.0 || my_policy[0] > 1.0)
         || (my_policy[1] < 0.0 || my_policy[1] > 1.0)
-        || ((my_policy[0] + my_policy[1]) < 0.0 || (my_policy[0] + my_policy[1]) > 1.0)
+        || (sum_sigma1 < 0.0 || sum_sigma1 > 1.0)
     {
         return -50000.0;
     }
-    let my_policy = [
-        my_policy[0],
-        my_policy[1],
-        1.0 - my_policy[0] - my_policy[1],
-    ];
-    let others_policy = [
-        others_policy[0],
-        others_policy[1],
-        1.0 - others_policy[0] - others_policy[1],
-    ];
+    // let my_policy = [
+    //     my_policy[0],
+    //     my_policy[1],
+    //     1.0 - my_policy[0] - my_policy[1],
+    // ];
+
+    let sigma2_s = 1.0 / (1.0 / others_policy[0] + 1.0 / others_policy[1] + 1.0);
+    let sigma2_r = sigma2_s / others_policy[0];
+    let sigma2_p = sigma2_s / others_policy[1];
+    let others_policy = [sigma2_r, sigma2_p, sigma2_s];
 
     let utility = 3.0
         * (my_policy[0] * others_policy[2]
